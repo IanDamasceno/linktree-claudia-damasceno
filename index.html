@@ -120,6 +120,23 @@
       /* Entrance animation */
       @keyframes fadeUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
       .anim { opacity: 0; animation: fadeUp 0.5s ease forwards; }
+
+      /* Formulário (captura de lead) */
+      .modal-ov { position: fixed; inset: 0; background: rgba(28,16,8,0.85); display: none; align-items: center; justify-content: center; padding: 20px; z-index: 50; }
+      .modal-ov.show { display: flex; }
+      .modal-card { width: 100%; max-width: 360px; background: var(--dark-light); border: 1px solid rgba(201,169,110,0.25); padding: 26px; position: relative; }
+      .modal-card .ml { font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--gold); margin-bottom: 12px; }
+      .modal-card h3 { font-family: 'Cormorant Garamond', serif; font-size: 25px; color: var(--cream); font-weight: 500; margin-bottom: 4px; }
+      .modal-card p.sb { font-size: 12px; color: rgba(245,237,217,0.5); line-height: 1.5; margin-bottom: 18px; }
+      .modal-card input { width: 100%; background: var(--dark); border: 1px solid rgba(245,237,217,0.15); color: var(--cream); padding: 12px 14px; font-size: 13px; font-family: 'Inter', sans-serif; margin-bottom: 12px; outline: none; box-sizing: border-box; }
+      .modal-card input:focus { border-color: var(--gold); }
+      .modal-card input::placeholder { color: rgba(245,237,217,0.3); }
+      .modal-card .err { color: #e8a; font-size: 11px; margin: -4px 0 10px; }
+      .modal-card button.send { width: 100%; background: var(--crimson); color: var(--cream); border: none; padding: 14px; font-size: 11px; letter-spacing: 0.15em; text-transform: uppercase; font-family: 'Inter', sans-serif; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: background 0.2s; }
+      .modal-card button.send:hover { background: var(--crimson-light); }
+      .modal-card button.send:disabled { opacity: 0.6; }
+      .modal-card .close { position: absolute; top: 10px; right: 14px; background: none; border: none; color: rgba(245,237,217,0.4); font-size: 22px; cursor: pointer; line-height: 1; }
+      .modal-card .note { font-size: 10px; color: rgba(245,237,217,0.3); text-align: center; margin-top: 12px; line-height: 1.5; }
     </style>
   </head>
   <body>
@@ -169,20 +186,39 @@
       </p>
     </div>
 
+    <div class="modal-ov" id="leadModal" role="dialog" aria-modal="true">
+      <div class="modal-card">
+        <button class="close" id="leadClose" aria-label="Fechar">&times;</button>
+        <div class="ml" id="leadArea">Consulta</div>
+        <h3>Vamos conversar</h3>
+        <p class="sb">Deixe seu contato e abriremos a conversa no WhatsApp. É rápido e sigiloso.</p>
+        <form id="leadForm" novalidate>
+          <input type="text" id="leadNome" placeholder="Seu nome" autocomplete="name" />
+          <input type="tel" id="leadTel" placeholder="(33) 90000-0000" inputmode="tel" autocomplete="tel" />
+          <div class="err" id="leadErr"></div>
+          <button type="submit" class="send" id="leadSend">Continuar no WhatsApp</button>
+        </form>
+        <p class="note">Seus dados são tratados com sigilo e usados apenas para o seu atendimento.</p>
+      </div>
+    </div>
+
     <script>
       // ============================================================
       // CONFIGURAÇÃO — edite aqui para personalizar
       // ============================================================
       var WHATSAPP_NUMBER = '5533998764328'; // DDI+DDD, sem espaços
 
+      // Endereço da função que grava o lead no Notion (mesma do site)
+      var API_URL = 'https://advclaudiadamasceno.vercel.app/api/lead';
+
       var LINKS = [
-        { label: 'Agendar Consulta', sub: 'Fale com a Dra. Claudia Damasceno', msg: 'Olá, tudo bem? Gostaria de agendar uma consulta com a Dra. Claudia Damasceno.', primary: true },
-        { label: 'Divórcio', sub: 'Consensual ou litigioso', msg: 'Olá, tudo bem? Gostaria de saber sobre divórcio.' },
-        { label: 'Guarda de Filhos', sub: 'Unilateral ou compartilhada', msg: 'Olá, tudo bem? Gostaria de saber sobre guarda de filhos.' },
-        { label: 'Pensão Alimentícia', sub: 'Fixação, revisão ou execução', msg: 'Olá, tudo bem? Gostaria de saber sobre pensão alimentícia.' },
-        { label: 'Inventário e Herança', sub: 'Extrajudicial ou judicial', msg: 'Olá, tudo bem? Gostaria de saber sobre inventário e herança.' },
-        { label: 'Direito de Família', sub: 'União estável, adoção e mais', msg: 'Olá, tudo bem? Gostaria de saber sobre direito de família.' },
-        { label: 'Direito Civil', sub: 'Contratos e responsabilidade civil', msg: 'Olá, tudo bem? Gostaria de saber sobre direito civil.' }
+        { label: 'Agendar Consulta', area: 'Consulta geral', sub: 'Fale com a Dra. Claudia Damasceno', msg: 'Olá, tudo bem? Gostaria de agendar uma consulta com a Dra. Claudia Damasceno.', primary: true },
+        { label: 'Divórcio', area: 'Divórcio', sub: 'Consensual ou litigioso', msg: 'Olá, tudo bem? Gostaria de saber sobre divórcio.' },
+        { label: 'Guarda de Filhos', area: 'Guarda de Filhos', sub: 'Unilateral ou compartilhada', msg: 'Olá, tudo bem? Gostaria de saber sobre guarda de filhos.' },
+        { label: 'Pensão Alimentícia', area: 'Pensão Alimentícia', sub: 'Fixação, revisão ou execução', msg: 'Olá, tudo bem? Gostaria de saber sobre pensão alimentícia.' },
+        { label: 'Inventário e Herança', area: 'Inventário e Herança', sub: 'Extrajudicial ou judicial', msg: 'Olá, tudo bem? Gostaria de saber sobre inventário e herança.' },
+        { label: 'Direito de Família', area: 'Direito de Família', sub: 'União estável, adoção e mais', msg: 'Olá, tudo bem? Gostaria de saber sobre direito de família.' },
+        { label: 'Direito Civil', area: 'Direito Civil', sub: 'Contratos e responsabilidade civil', msg: 'Olá, tudo bem? Gostaria de saber sobre direito civil.' }
       ];
       // ============================================================
 
@@ -191,17 +227,77 @@
 
       var container = document.getElementById('links');
       LINKS.forEach(function (link, i) {
+        var wa = 'https://wa.me/' + WHATSAPP_NUMBER + '?text=' + encodeURIComponent(link.msg);
         var a = document.createElement('a');
         a.className = 'link anim' + (link.primary ? ' primary' : '');
         a.style.animationDelay = (0.3 + i * 0.07) + 's';
-        a.href = 'https://wa.me/' + WHATSAPP_NUMBER + '?text=' + encodeURIComponent(link.msg);
-        a.target = '_blank';
-        a.rel = 'noopener noreferrer';
+        a.href = wa; // fallback caso o JS falhe
+        a.addEventListener('click', function (e) {
+          e.preventDefault();
+          openForm(link, wa);
+        });
         a.innerHTML =
           WA_ICON.replace('FILL', link.primary ? '#fff' : '#c9a96e') +
           '<span class="text"><span class="label">' + link.label + '</span>' +
           '<span class="sub">' + link.sub + '</span></span>' + ARROW;
         container.appendChild(a);
+      });
+
+      // ===== Formulário de captura (envia ao CRM no Notion) =====
+      var modal = document.getElementById('leadModal');
+      var elNome = document.getElementById('leadNome');
+      var elTel = document.getElementById('leadTel');
+      var elErr = document.getElementById('leadErr');
+      var elSend = document.getElementById('leadSend');
+      var currentWa = '';
+      var currentArea = 'Consulta geral';
+
+      function maskPhone(v) {
+        var d = v.replace(/\D+/g, '').slice(0, 11);
+        if (d.length <= 2) return d.length ? '(' + d : '';
+        if (d.length <= 6) return '(' + d.slice(0, 2) + ') ' + d.slice(2);
+        if (d.length <= 10) return '(' + d.slice(0, 2) + ') ' + d.slice(2, 6) + '-' + d.slice(6);
+        return '(' + d.slice(0, 2) + ') ' + d.slice(2, 7) + '-' + d.slice(7);
+      }
+
+      function openForm(link, wa) {
+        currentWa = wa;
+        currentArea = link.area || link.label;
+        document.getElementById('leadArea').textContent = link.label;
+        elErr.textContent = '';
+        elNome.value = '';
+        elTel.value = '';
+        elSend.disabled = false;
+        elSend.textContent = 'Continuar no WhatsApp';
+        modal.classList.add('show');
+        setTimeout(function () { elNome.focus(); }, 50);
+      }
+      function closeForm() { modal.classList.remove('show'); }
+
+      document.getElementById('leadClose').addEventListener('click', closeForm);
+      modal.addEventListener('click', function (e) { if (e.target === modal) closeForm(); });
+      document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeForm(); });
+      elTel.addEventListener('input', function (e) { e.target.value = maskPhone(e.target.value); });
+
+      document.getElementById('leadForm').addEventListener('submit', function (e) {
+        e.preventDefault();
+        var nome = elNome.value.trim();
+        var tel = elTel.value.trim();
+        var dig = tel.replace(/\D+/g, '');
+        if (nome.length < 2) { elErr.textContent = 'Por favor, informe o seu nome.'; return; }
+        if (dig.length < 10 || dig.length > 11) { elErr.textContent = 'Informe um WhatsApp válido com DDD.'; return; }
+        elErr.textContent = '';
+        elSend.disabled = true;
+        elSend.textContent = 'Abrindo o WhatsApp…';
+        try {
+          fetch(API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ nome: nome, telefone: tel, area: currentArea, origem: 'Linktree' }),
+            keepalive: true
+          }).catch(function () {});
+        } catch (err) {}
+        setTimeout(function () { window.location.href = currentWa; }, 350);
       });
     </script>
   </body>
